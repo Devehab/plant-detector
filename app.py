@@ -9,8 +9,11 @@ import io
 # Load environment variables
 load_dotenv()
 
-# Configure Google API
-genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
+# Check for API key
+api_key = os.getenv('GOOGLE_API_KEY')
+if not api_key:
+    raise RuntimeError("GOOGLE_API_KEY is not set in the environment variables.")
+genai.configure(api_key=api_key)
 
 app = Flask(__name__, static_folder='static')
 
@@ -23,22 +26,10 @@ generation_config = {
 }
 
 safety_settings = [
-    {
-        "category": "HARM_CATEGORY_HARASSMENT",
-        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-    },
-    {
-        "category": "HARM_CATEGORY_HATE_SPEECH",
-        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-    },
-    {
-        "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-    },
-    {
-        "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-    }
+    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
 ]
 
 model = genai.GenerativeModel(
@@ -54,13 +45,16 @@ def index():
 @app.route('/analyze', methods=['POST'])
 def analyze_plant():
     try:
-        # Get the image data from the request
-        image_data = request.json['image'].split(',')[1]
+        # Validate input
+        data = request.json
+        if not data or 'image' not in data:
+            return jsonify({'success': False, 'error': 'Missing image data'}), 400
+        
+        # Decode image
+        image_data = data['image'].split(',')[1]
         image_bytes = base64.b64decode(image_data)
-        
-        # Convert to PIL Image
         image = Image.open(io.BytesIO(image_bytes))
-        
+
         # Convert image to base64
         buffered = io.BytesIO()
         image.save(buffered, format="JPEG")
@@ -96,7 +90,6 @@ def analyze_plant():
 
         # Generate response
         response = model.generate_content([prompt, {"mime_type": "image/jpeg", "data": img_str}])
-        response.resolve()
         
         return jsonify({
             'success': True,
@@ -104,10 +97,8 @@ def analyze_plant():
         })
     
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=3000)
+    debug_mode = os.getenv('DEBUG', 'False').lower() == 'true'
+    app.run(debug=debug_mode, host='0.0.0.0', port=3000)
