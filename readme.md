@@ -152,6 +152,80 @@ You can deploy this application on a live server like **Render** by following th
    - Click "Deploy" and wait for the build to complete.
    - Your application will be live at the provided Render URL.
 
+## 🐳 Docker Deployment
+
+### 🚀 Option 1: Quick Start with Docker Compose
+
+The fastest way to get up and running:
+
+```bash
+# Create a directory for the application
+mkdir plant-detector
+cd plant-detector
+
+# Download only the compose.yml file from GitHub
+curl -O https://raw.githubusercontent.com/Devehab/plant-detector/main/compose.yml
+
+# Edit the compose.yml file to add your Google API key
+# Replace 'your_api_key' with your actual Google API key
+
+# Run with Docker Compose
+docker compose up -d
+```
+
+> This will pull the pre-built image from Docker Hub and start the application with all necessary configurations.
+> Access the application at: http://localhost:3000
+
+### 🛠️ Option 2: Manual Docker Setup
+
+#### Step 1: Build the Docker Image
+
+**For Single Architecture:**
+```bash
+docker build -t plant-detector .
+```
+
+**For Multiple Architectures (AMD64 & ARM64):**
+```bash
+# Create and use a buildx builder
+docker buildx create --use
+
+# Build and push the multi-architecture image
+# Replace 'yourusername' with your Docker Hub username
+docker buildx build --platform linux/amd64,linux/arm64 -t yourusername/plant-detector:latest --push .
+```
+
+> This builds the image for both AMD64 (standard servers) and ARM64 (Mac M1/M2, Raspberry Pi) architectures.
+> The `--push` flag uploads the image to Docker Hub. Remove it if you only want to build locally.
+
+#### Step 2: Run the Container
+
+**Using environment variable directly:**
+```bash
+docker run -d -p 3000:3000 -e GOOGLE_API_KEY=your_api_key plant-detector
+```
+
+**Or using .env file:**
+```bash
+docker run -d -p 3000:3000 --env-file .env plant-detector
+```
+
+#### Step 3: Access the Application
+Open your browser and navigate to `http://localhost:3000`
+
+### 📋 Useful Docker Commands
+
+```bash
+# View running containers
+docker ps
+
+# Stop the container
+docker stop <container_id>
+
+# Remove the container
+docker rm <container_id>
+```
+
 ## 🎯 Usage
 
 Once the application is running, open a web browser and go to `http://127.0.0.1:3000` or the deployed Render URL. Enter your dream description and click the "Interpret" button to receive an analysis.
@@ -179,4 +253,3 @@ This project is licensed under the MIT License. For more details, see the [LICEN
 ---
 
 🚀 *Feel free to open issues or discussions for suggestions and improvements!*
-
